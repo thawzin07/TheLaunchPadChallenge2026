@@ -21,3 +21,8 @@ Open `http://localhost:3000`.
 
 Copy `ApplyOS/.env.example` to `ApplyOS/.env` and fill the Supabase, OpenAI, and optional job-provider values before running live services.
 
+## Live Links
+
+- GitHub: https://github.com/thawzin07/TheLaunchPadChallenge2026
+- Vercel production: https://applyos-sable.vercel.app
+

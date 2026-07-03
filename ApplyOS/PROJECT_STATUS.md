@@ -38,6 +38,8 @@ Production MVP implementation and verification.
 - Built production UI screens for Dashboard, Profile, Jobs, Applications, Interview Prep, and Settings.
 - Added `.env.example` and updated `README.md`.
 - Added root repository README and root `.gitignore`.
+- Created GitHub repository `thawzin07/TheLaunchPadChallenge2026`.
+- Created and connected Vercel project `thawzin07s-projects/applyos`.
 
 ## Current Decision
 
@@ -107,6 +109,16 @@ Resume and AI hardening verification on 2026-07-03:
 - Verified `/login` returns 200 in a headless browser with no console errors or Next.js error overlay.
 - Verified unauthenticated `/api/profile` and `/api/profile/resumes` return `401`.
 
+Deployment verification on 2026-07-03:
+
+- GitHub remote: `https://github.com/thawzin07/TheLaunchPadChallenge2026`.
+- Vercel production URL: `https://applyos-sable.vercel.app`.
+- Vercel project root directory set to `ApplyOS`.
+- Vercel production environment variables configured for Supabase and OpenAI.
+- Live `/login` returned `200`.
+- Live `/api/health` returned `200` and reported Supabase Postgres ready.
+- Live unauthenticated `/api/profile` returned `401`.
+
 ## Risks
 
 | Risk | Mitigation |
@@ -121,5 +133,5 @@ Resume and AI hardening verification on 2026-07-03:
 
 - Run a full authenticated browser smoke test with a fresh signup/login once Supabase email limits are clear.
 - Add password reset and optional email confirmation UX polish.
-- Create the GitHub remote after GitHub CLI or a remote URL is available.
-- Deploy to Vercel after the Vercel CLI session/token is refreshed.
+- Confirm Supabase Auth production redirect URLs include `https://applyos-sable.vercel.app/auth/confirm`.
+- Watch the first Git-triggered Vercel deployment from a pushed commit.
