@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button, Field, Panel, inputClass } from "@/components/ui";
+import { getPasswordPolicyError, PASSWORD_POLICY_HINT } from "@/lib/password-policy";
 
 export function ResetPasswordForm({ canReset, email }: { canReset: boolean; email?: string }) {
   const router = useRouter();
@@ -22,6 +23,12 @@ export function ResetPasswordForm({ canReset, email }: { canReset: boolean; emai
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
+      return;
+    }
+
+    const passwordError = getPasswordPolicyError(password, { email });
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -61,7 +68,7 @@ export function ResetPasswordForm({ canReset, email }: { canReset: boolean; emai
       </div>
       {canReset ? (
         <form onSubmit={submit} className="grid gap-4">
-          <Field label="New password" hint="Use at least 8 characters.">
+          <Field label="New password" hint={PASSWORD_POLICY_HINT}>
             <input
               className={inputClass}
               type="password"
@@ -99,4 +106,3 @@ export function ResetPasswordForm({ canReset, email }: { canReset: boolean; emai
     </Panel>
   );
 }
-

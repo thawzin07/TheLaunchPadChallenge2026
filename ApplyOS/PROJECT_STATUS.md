@@ -27,6 +27,8 @@ Production MVP implementation and verification.
 - Replaced local credentials authentication with Supabase Auth and cookie-based SSR sessions.
 - Added password reset request and update flow through Supabase Auth recovery links.
 - Added an env-gated signup fallback for Supabase email rate-limit incidents.
+- Added shared password-strength validation for signup and password reset.
+- Added same-origin checks and lightweight rate limiting for auth mutation routes.
 - Added protected app routes and a private user profile workspace.
 - Added Prisma data models.
 - Switched database configuration from local SQLite to Supabase Postgres.
@@ -42,6 +44,7 @@ Production MVP implementation and verification.
 - Added root repository README and root `.gitignore`.
 - Created GitHub repository `thawzin07/TheLaunchPadChallenge2026`.
 - Created and connected Vercel project `thawzin07s-projects/applyos`.
+- Added an npm override so Next's nested PostCSS dependency resolves to the fixed `8.5.16` release.
 
 ## Current Decision
 
@@ -143,6 +146,11 @@ Deployment verification on 2026-07-03:
   - OpenAI application pack,
   - OpenAI interview prep,
   - auth/app/storage cleanup.
+- Auth hardening verification:
+  - `npm audit --audit-level=moderate` passed with 0 vulnerabilities,
+  - local production `next start` probe rejects common weak signup passwords with `400`,
+  - local production `next start` probe rejects cross-origin auth POSTs with `403`,
+  - malformed auth JSON returns `400` instead of a generic server error.
 
 ## Risks
 

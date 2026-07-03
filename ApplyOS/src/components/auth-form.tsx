@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button, Field, Panel, inputClass } from "@/components/ui";
+import { getPasswordPolicyError, PASSWORD_POLICY_HINT } from "@/lib/password-policy";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
@@ -21,6 +22,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setPending(true);
     setError("");
     setNotice("");
+
+    if (mode === "signup") {
+      const passwordError = getPasswordPolicyError(password, { email, name });
+      if (passwordError) {
+        setError(passwordError);
+        setPending(false);
+        return;
+      }
+    }
 
     const response = await fetch(`/api/auth/${mode === "login" ? "login" : "signup"}`, {
       method: "POST",
@@ -75,7 +85,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             required
           />
         </Field>
-        <Field label="Password" hint={mode === "signup" ? "Use at least 8 characters." : undefined}>
+        <Field label="Password" hint={mode === "signup" ? PASSWORD_POLICY_HINT : undefined}>
           <input
             className={inputClass}
             type="password"

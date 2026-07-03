@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { ensureDatabase, prisma } from "@/lib/db";
+import { getPasswordPolicyError } from "@/lib/password-policy";
+import { checkRateLimit, makeRateLimitKey } from "@/lib/rate-limit";
+import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { createSupabaseRouteClient } from "@/lib/supabase-ssr";
 import type { NextRequest } from "next/server";
@@ -9,8 +12,10 @@ import type { NextRequest } from "next/server";
 const signupSchema = z.object({
   name: z.string().min(2).max(80),
   email: z.string().email(),
-  password: z.string().min(8).max(128),
+  password: z.string().min(1).max(128),
 });
+
+const SIGNUP_WINDOW_MS = 15 * 60 * 1000;
 
 function withAuthCookies(source: NextResponse, body: unknown, init?: ResponseInit) {
   const response = NextResponse.json(body, init);
@@ -32,11 +37,43 @@ function canUseSignupFallback(errorMessage?: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const originError = rejectUntrustedOrigin(request);
+  if (originError) return originError;
+
+  const ipLimit = checkRateLimit({
+    key: makeRateLimitKey(request, "signup"),
+    limit: 30,
+    windowMs: SIGNUP_WINDOW_MS,
+  });
+  if (!ipLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many signup attempts. Try again in a few minutes." },
+      { status: 429, headers: { "Retry-After": String(ipLimit.retryAfterSeconds) } },
+    );
+  }
+
   const response = NextResponse.json({ ok: true });
 
   try {
     const input = signupSchema.parse(await request.json());
     const email = input.email.toLowerCase().trim();
+    const subjectLimit = checkRateLimit({
+      key: makeRateLimitKey(request, "signup", email),
+      limit: 5,
+      windowMs: SIGNUP_WINDOW_MS,
+    });
+    if (!subjectLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many signup attempts for this email. Try again in a few minutes." },
+        { status: 429, headers: { "Retry-After": String(subjectLimit.retryAfterSeconds) } },
+      );
+    }
+
+    const passwordError = getPasswordPolicyError(input.password, { email, name: input.name });
+    if (passwordError) {
+      return NextResponse.json({ error: passwordError }, { status: 400 });
+    }
+
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
     const emailRedirectTo = new URL("/auth/confirm?next=/dashboard", appUrl).toString();
     const supabase = createSupabaseRouteClient(request, response);
@@ -109,6 +146,9 @@ export async function POST(request: NextRequest) {
       emailConfirmationBypassed: usedUnverifiedFallback,
     });
   } catch (error) {
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: "Send a valid JSON request." }, { status: 400 });
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Check your signup details and try again." }, { status: 400 });
     }

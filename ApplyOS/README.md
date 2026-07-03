@@ -92,3 +92,7 @@ The `resumes` bucket is used by the Profile screen's resume upload control. Uplo
 The app accesses app tables through server-side Prisma and uses route-level ownership checks. Keep Row Level Security enabled for tables that may later be accessed directly through browser Supabase clients, and keep the `SUPABASE_SERVICE_ROLE_KEY` server-only.
 
 `AUTH_ALLOW_UNVERIFIED_SIGNUP_FALLBACK=true` is a demo safety valve for Supabase email rate limits. It creates a confirmed Supabase Auth user server-side only when Supabase rejects signup with an email rate-limit error. Disable it after configuring custom SMTP or restoring normal email confirmation delivery.
+
+Auth mutation routes enforce same-origin checks, lightweight per-client throttling, shared password-strength validation, and `400` responses for malformed JSON. Supabase Auth leaked-password protection should still be enabled in the Supabase dashboard when available.
+
+The project uses an npm `overrides` entry to force transitive `postcss` resolution to `8.5.16`, avoiding the vulnerable nested version pinned by the current Next.js release.

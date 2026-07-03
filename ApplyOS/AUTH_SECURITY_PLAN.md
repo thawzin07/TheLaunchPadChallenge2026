@@ -50,6 +50,29 @@ Treat this as private user data.
 - Validate all AI outputs before saving.
 - Escape or sanitize HTML from job descriptions before rendering.
 - Keep raw external API payloads server-side or remove them unless needed for debugging.
+- Enforce a shared password policy on signup and password reset.
+- Throttle repeated auth mutations by client address and target email where applicable.
+- Reject cross-origin auth mutation requests.
+- Return `400` for malformed auth JSON instead of leaking generic server errors.
+
+## Current Auth Implementation
+
+- Supabase Auth owns account identity, sessions, email confirmation, and recovery links.
+- Next.js route handlers wrap Supabase Auth and write SSR cookies through `@supabase/ssr`.
+- App records are keyed by Supabase Auth user id.
+- Protected app pages redirect anonymous visitors to `/login`.
+- Protected API routes return normalized `401` responses.
+- Signup uses Supabase email confirmation first. `AUTH_ALLOW_UNVERIFIED_SIGNUP_FALLBACK=true` is only a demo continuity fallback while Supabase email limits are active.
+- Password reset uses `/forgot-password`, `/auth/confirm?next=/reset-password`, and `/reset-password`.
+- Auth mutation routes use same-origin checks and in-process rate limiting as an application-level guard in addition to Supabase Auth rate limits.
+
+## Dashboard Security Follow-Up
+
+- Confirm the Supabase Site URL is `https://applyos-sable.vercel.app`.
+- Add the exact production redirect `https://applyos-sable.vercel.app/auth/confirm`.
+- Add local and Vercel preview redirect patterns only where needed.
+- Enable leaked password protection in Supabase Auth if the project plan supports it.
+- Configure custom SMTP before disabling `AUTH_ALLOW_UNVERIFIED_SIGNUP_FALLBACK`.
 
 ## Privacy UX Requirements
 
