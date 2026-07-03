@@ -129,6 +129,11 @@ Deployment verification on 2026-07-03:
   - authenticated reset update returns `200`,
   - login with the updated password returns `200`,
   - test auth user cleanup passed.
+- Public signup verification while Supabase email rate limit was active:
+  - live `/api/auth/signup` returned `200`,
+  - `emailConfirmationBypassed` was `true`,
+  - session cookie was issued,
+  - app user and auth user cleanup passed.
 - Production authenticated E2E smoke passed with a disposable confirmed user:
   - login/session read,
   - demo profile load,
