@@ -1,3 +1,5 @@
+"use client";
+
 import {
   BriefcaseBusiness,
   Gauge,
@@ -8,9 +10,12 @@ import {
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { LogoutButton } from "@/components/logout-button";
+import { SessionToast } from "@/components/toast";
 import { Badge } from "@/components/ui";
+import { cn } from "@/components/ui";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Gauge },
@@ -28,8 +33,11 @@ export function AppFrame({
   user: { name: string; email: string };
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
     <div className="min-h-screen bg-stone-50 text-stone-950">
+      <SessionToast />
       <header className="sticky top-0 z-20 border-b border-stone-200 bg-white/95 backdrop-blur">
         <div className="flex min-h-16 items-center justify-between gap-4 px-4 lg:px-6">
           <Link href="/dashboard" className="flex items-center gap-3">
@@ -56,11 +64,18 @@ export function AppFrame({
           <nav className="flex gap-1 overflow-x-auto p-3 lg:grid lg:p-4">
             {navItems.map((item) => {
               const Icon = item.icon;
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="inline-flex min-h-10 shrink-0 items-center gap-3 rounded-md px-3 text-sm font-medium text-stone-700 hover:bg-stone-100 hover:text-stone-950"
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "inline-flex min-h-10 shrink-0 items-center gap-3 rounded-md px-3 text-sm font-medium transition",
+                    active
+                      ? "bg-stone-950 text-white shadow-sm"
+                      : "text-stone-700 hover:bg-stone-100 hover:text-stone-950",
+                  )}
                 >
                   <Icon className="h-4 w-4" />
                   {item.label}

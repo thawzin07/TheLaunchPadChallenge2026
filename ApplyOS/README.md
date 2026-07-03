@@ -9,10 +9,11 @@ ApplyOS is a production-shaped internship/job application workspace for The Laun
 - Prisma with Supabase Postgres persistence
 - Supabase Auth with cookie-based SSR sessions and protected routes
 - Email/password signup, login, logout, confirmation callback, and password reset recovery
-- Supabase Storage private resume uploads with database-backed file records and signed retrieval links
+- Supabase Storage private resume uploads with database-backed file records and authenticated app download links
 - PDF, DOCX, and TXT resume text extraction
 - Job adapters: MyCareersFuture, Adzuna SG, Greenhouse, Lever, mock fallback
 - AI adapters: OpenAI Responses API, Agnes AI compatible endpoint, GMI Cloud compatible endpoint, deterministic mock fallback
+- Resume tailoring uses saved resume/profile text and can attach the latest uploaded resume as an OpenAI Responses `input_file` when local extraction is unavailable.
 
 ## Local Setup
 
@@ -33,7 +34,7 @@ Before `npm run db:push`, replace the Supabase placeholders in `.env` with your 
 1. Create an account or sign in.
 2. Use password reset from the login screen if you need account recovery.
 3. Go to Profile, load the demo profile, or upload a PDF, DOCX, or TXT resume.
-4. Review uploaded resumes, open signed links, and delete files when needed.
+4. Review uploaded resumes, open them through the authenticated app download route, and delete files when needed.
 5. Go to Jobs and search for a Singapore internship role.
 6. Select a role, run fit analysis, save it, and generate an application pack.
 7. Review and copy tailored bullets, a resume draft, a cover letter, and recruiter message.
@@ -80,7 +81,7 @@ Production smoke test:
 npm run smoke:production
 ```
 
-The smoke test creates a disposable confirmed Supabase Auth user and a disposable smoke job, signs in through the live app, uploads/retrieves/deletes a TXT resume, runs OpenAI fit analysis, saves an application, generates an application pack and interview prep, verifies key origin/password guards, then cleans up the auth user, app rows, and storage object. Set `SMOKE_BASE_URL` to test a non-production deployment and `SMOKE_EXPECT_AI_PROVIDER` if the primary AI provider changes.
+The smoke test creates a disposable confirmed Supabase Auth user and a disposable smoke job, signs in through the live app, uploads/downloads/deletes a TXT resume through authenticated app routes, runs OpenAI fit analysis, saves an application, generates an application pack and interview prep, verifies key origin/password guards, then cleans up the auth user, app rows, and storage object. Set `SMOKE_BASE_URL` to test a non-production deployment and `SMOKE_EXPECT_AI_PROVIDER` if the primary AI provider changes.
 
 ## Supabase Database URLs
 
@@ -93,11 +94,13 @@ DIRECT_URL="postgresql://postgres.your-project-ref:password@aws-1-ap-southeast-1
 
 ApplyOS uses Supabase Auth for signup, login, logout, and route protection. The `public.User` table stores app-specific profile ownership metadata keyed by the Supabase Auth user id.
 
-The `resumes` bucket is used by the Profile screen's resume upload control. Uploads are server-side and require `SUPABASE_SERVICE_ROLE_KEY`.
+The `resumes` bucket is used by the Profile screen's resume upload control. Uploads and downloads are server-side and require `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Security Note
 
 The app accesses app tables through server-side Prisma and uses route-level ownership checks. Keep Row Level Security enabled for tables that may later be accessed directly through browser Supabase clients, and keep the `SUPABASE_SERVICE_ROLE_KEY` server-only.
+
+Resume file bucket paths and Supabase signed URLs are not returned to the browser. The UI uses `/api/profile/resumes/[id]/download`, which re-checks the signed-in user before streaming a file from private storage.
 
 `AUTH_ALLOW_UNVERIFIED_SIGNUP_FALLBACK=true` is a demo safety valve for Supabase email rate limits. It creates a confirmed Supabase Auth user server-side only when Supabase rejects signup with an email rate-limit error. Disable it after configuring custom SMTP or restoring normal email confirmation delivery.
 

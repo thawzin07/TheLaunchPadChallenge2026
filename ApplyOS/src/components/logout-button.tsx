@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { setNextToast } from "@/components/toast";
 import { Button } from "@/components/ui";
 
 export function LogoutButton() {
@@ -13,6 +14,7 @@ export function LogoutButton() {
   async function logout() {
     setPending(true);
     await fetch("/api/auth/logout", { method: "POST" });
+    setNextToast("Signed out.", "success");
     router.push("/login");
     router.refresh();
   }

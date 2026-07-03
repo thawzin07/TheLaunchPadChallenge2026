@@ -16,19 +16,16 @@ function serializeResume(input: {
   sizeBytes: number;
   extractedText: string;
   createdAt: Date;
-  signedUrl?: string | null;
 }) {
   return {
     id: input.id,
-    bucket: input.bucket,
-    path: input.path,
     fileName: input.fileName,
     contentType: input.contentType,
     sizeBytes: input.sizeBytes,
     extractedTextAvailable: Boolean(input.extractedText),
     extractedTextPreview: input.extractedText.slice(0, 500),
     createdAt: input.createdAt.toISOString(),
-    signedUrl: input.signedUrl ?? null,
+    downloadUrl: `/api/profile/resumes/${input.id}/download`,
   };
 }
 
@@ -41,18 +38,7 @@ export const GET = withApiErrors(async () => {
     orderBy: { createdAt: "desc" },
   });
 
-  const supabase = getSupabaseAdmin();
-  const signed = await Promise.all(
-    resumes.map(async (resume) => {
-      const url = await supabase.storage.from(resume.bucket).createSignedUrl(resume.path, 60 * 60);
-      return serializeResume({
-        ...resume,
-        signedUrl: url.data?.signedUrl ?? null,
-      });
-    }),
-  );
-
-  return NextResponse.json({ resumes: signed });
+  return NextResponse.json({ resumes: resumes.map(serializeResume) });
 });
 
 export const DELETE = withApiErrors(async (request: NextRequest) => {

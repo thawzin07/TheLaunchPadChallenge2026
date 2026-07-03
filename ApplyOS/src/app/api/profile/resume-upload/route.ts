@@ -69,16 +69,15 @@ export const POST = withApiErrors(async (request: NextRequest) => {
       fileName: file.name,
       contentType: file.type || "application/octet-stream",
     });
-    const signed = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
     const current = await prisma.userProfile.findUnique({ where: { userId: user.id } });
     const profile = parseProfile(current);
     const evidenceItem = {
       id: `resume-${Date.now()}`,
       label: "Uploaded resume",
       detail: extractedText
-        ? `Stored and extracted text from ${file.name}.`
-        : `Stored ${file.name} in Supabase Storage bucket "${bucket}". Text extraction was not available for this file.`,
-      tags: extractedText ? ["Resume", "Parsed resume", "Supabase Storage"] : ["Resume", "Supabase Storage"],
+        ? `${file.name} was uploaded and its text is ready for tailoring.`
+        : `${file.name} was uploaded securely. Paste key resume text below if you want stronger tailoring for this file.`,
+      tags: extractedText ? ["Resume", "Text extracted"] : ["Resume", "Private upload"],
     };
     const nextProfile = {
       ...profile,
@@ -116,13 +115,11 @@ export const POST = withApiErrors(async (request: NextRequest) => {
     return NextResponse.json({
       file: {
         id: resume.id,
-        bucket,
-        path,
         name: file.name,
         type: file.type || "application/octet-stream",
         size: file.size,
         extractedTextAvailable: Boolean(extractedText),
-        signedUrl: signed.data?.signedUrl ?? null,
+        downloadUrl: `/api/profile/resumes/${resume.id}/download`,
       },
       profile: parseProfile(saved),
       resumes: resumes.map((item) => ({
@@ -131,7 +128,9 @@ export const POST = withApiErrors(async (request: NextRequest) => {
         contentType: item.contentType,
         sizeBytes: item.sizeBytes,
         extractedTextAvailable: Boolean(item.extractedText),
+        extractedTextPreview: item.extractedText.slice(0, 500),
         createdAt: item.createdAt.toISOString(),
+        downloadUrl: `/api/profile/resumes/${item.id}/download`,
       })),
     });
   } catch (error) {

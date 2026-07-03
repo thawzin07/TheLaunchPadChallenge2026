@@ -174,14 +174,23 @@ export function buildApplicationPack(
     .filter((match) => match.status === "strong" || match.status === "partial")
     .map((match) => match.requirement)
     .slice(0, 6);
+  const targetKeywords = Array.from(new Set([...matched, ...job.skills])).slice(0, 8);
+  const resumeSource =
+    profile.resumeText ||
+    [profile.summary, profile.projects.map((item) => item.detail).join(" "), profile.experience.map((item) => item.detail).join(" ")]
+      .join(" ")
+      .trim();
+  const evidenceLines = topEvidence.length
+    ? topEvidence.map((item) => `- ${item.evidence}`).join("\n")
+    : "- Adapt the strongest existing resume points toward the responsibilities in this job description.";
 
   return {
     resumeBullets: [
-      `Built full-stack product workflows using ${matched.slice(0, 3).join(", ") || "modern web tools"}, with emphasis on reliable user-facing delivery.`,
+      `Built full-stack product workflows using ${targetKeywords.slice(0, 3).join(", ") || "modern web tools"}, with emphasis on reliable user-facing delivery.`,
       `Connected APIs, normalized data, and designed fallback states to keep the application useful when external services fail.`,
       `Translated project evidence into clear product decisions, user flows, and demo-ready outputs for reviewers.`,
     ],
-    resumeDraft: `${profile.headline || "Student developer"}\n\n${profile.summary || profile.resumeText}\n\nRelevant strengths for ${job.title}: ${matched.join(", ") || "fast learning, product thinking, and technical execution"}.\n\nSelected evidence:\n${topEvidence.map((item) => `- ${item.evidence}`).join("\n")}`,
+    resumeDraft: `${profile.headline || "Student developer"}\n\nTargeted summary for ${job.title} at ${job.company}:\n${profile.summary || resumeSource || "Applicant profile ready to tailor toward this job description."}\n\nRelevant keywords to bring forward: ${targetKeywords.join(", ") || "fast learning, product thinking, and technical execution"}.\n\nTailored resume notes:\n${evidenceLines}`,
     coverLetter: `Dear ${job.company} team,\n\nI am applying for the ${job.title} role because it matches the way I like to work: build practical software, understand the user's workflow, and prove claims with evidence. My strongest fit is in ${matched.slice(0, 3).join(", ") || "full-stack product development"}.\n\nA relevant example is ${topEvidence[0]?.evidence || "my recent work turning product requirements into a working application with authentication, data models, integrations, and a polished demo flow"}. I would bring the same discipline to your team: clarify the problem, ship carefully, and communicate trade-offs clearly.\n\nThank you for considering my application.\n\nBest regards,\n${profile.headline ? profile.headline.split(" targeting ")[0] : "Applicant"}`,
     recruiterMessage: `Hi, I am interested in the ${job.title} role at ${job.company}. My closest evidence is ${topEvidence[0]?.evidence || "building full-stack, API-driven product prototypes"}. I would appreciate the chance to apply and discuss fit.`,
     keywords: Array.from(new Set([...matched, ...job.skills])).slice(0, 12),

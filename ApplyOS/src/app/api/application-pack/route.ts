@@ -9,11 +9,48 @@ import { stringifyJson } from "@/lib/json";
 import { normalizeStoredJob } from "@/lib/jobs";
 import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { serializeAnalysis, serializePack } from "@/lib/serializers";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import type { NextRequest } from "next/server";
 
 const packSchema = z.object({
   applicationId: z.string().min(1),
 });
+
+async function latestResumeContext(userId: string) {
+  const resume = await prisma.resumeFile.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!resume) return {};
+
+  const context: {
+    latestResumeFileName: string;
+    latestResumeText?: string;
+    resumeFile?: {
+      fileName: string;
+      contentType: string;
+      base64: string;
+    };
+  } = {
+    latestResumeFileName: resume.fileName,
+    latestResumeText: resume.extractedText || undefined,
+  };
+
+  if (!resume.extractedText) {
+    const download = await getSupabaseAdmin().storage.from(resume.bucket).download(resume.path);
+    if (download.data && !download.error) {
+      const buffer = Buffer.from(await download.data.arrayBuffer());
+      context.resumeFile = {
+        fileName: resume.fileName,
+        contentType: resume.contentType || "application/octet-stream",
+        base64: buffer.toString("base64"),
+      };
+    }
+  }
+
+  return context;
+}
 
 export const POST = withApiErrors(async (request: NextRequest) => {
   const originError = rejectUntrustedOrigin(request);
@@ -66,6 +103,7 @@ export const POST = withApiErrors(async (request: NextRequest) => {
     normalizeStoredJob(application.jobListing),
     serializeAnalysis(analysis),
     user.id,
+    await latestResumeContext(user.id),
   );
 
   const pack = await prisma.applicationPack.upsert({

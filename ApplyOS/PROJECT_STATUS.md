@@ -33,6 +33,14 @@ Production MVP implementation and verification.
 - Added reusable production smoke verification script.
 - Added GitHub Actions CI for install, Prisma client generation, typecheck, lint, build, and audit.
 - Added protected app routes and a private user profile workspace.
+- Added authenticated resume download route so uploaded resume files are listed, opened, and deleted only after checking the signed-in owner.
+- Removed direct Supabase Storage bucket paths and signed URLs from resume upload/list API responses.
+- Added toast notifications for signin, signup, signout, profile loading/saving, resume upload/delete, job fetching, fit analysis, and tailored pack generation.
+- Added active sidebar navigation highlighting.
+- Redesigned the private profile screen with clearer profile input, upload, and confirm/save actions.
+- Reworked the Jobs screen so job details open in a modal with a close control instead of expanding down the page.
+- Updated OpenAI application-pack prompts to tailor the existing resume/profile to the selected job description.
+- Added an OpenAI Responses `input_file` fallback for latest uploaded resume files when local text extraction is unavailable.
 - Added Prisma data models.
 - Switched database configuration from local SQLite to Supabase Postgres.
 - Added Supabase Storage integration for the `resumes` bucket.
@@ -166,6 +174,21 @@ Deployment verification on 2026-07-03:
   - `npm run smoke:production` passed against `https://applyos-sable.vercel.app`.
 - CI verification:
   - with local `.env` and `.env.local` hidden, `npm ci`, `npm run db:generate`, and `npm run verify` passed.
+- Resume ownership and UX verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed,
+  - `npx.cmd eslint` passed,
+  - `npx.cmd next build` passed,
+  - `npm.cmd audit --audit-level=moderate` passed with 0 vulnerabilities,
+  - local production server on `http://localhost:3102` rendered `/login`, `/profile`, and `/jobs` with no framework error overlay or console errors in Playwright,
+  - browser login with a disposable confirmed user redirected to `/dashboard`,
+  - `/profile` showed `Private Profile`, `Confirm and save`, and `Upload selected resume`, with no `Supabase Storage bucket` user-facing copy,
+  - `/profile` and `/jobs` sidebar items received `aria-current="page"` when viewed,
+  - `/jobs` loaded job rows and opened job details in a modal with `Analyze fit`, `Tailor resume`, and a close control,
+  - resume access-control probe passed: owner download returned `200`, another signed-in user received `404` for download and delete, and owner delete succeeded.
+  - local `OPENAI_MODEL=codex 5.3 codex spark` caused OpenAI to fall back because it is not a valid API model id,
+  - direct OpenAI probe for the official Codex Spark slug `gpt-5.3-codex-spark` returned `model_not_found` for this API key,
+  - local `.env` was corrected to `OPENAI_MODEL=gpt-5.5`,
+  - local `SMOKE_BASE_URL=http://localhost:3102 SMOKE_EXPECT_AI_PROVIDER=openai node scripts/production-smoke.mjs` passed, including authenticated resume upload/download/delete, OpenAI fit analysis, OpenAI application pack, OpenAI interview prep, and cleanup.
 
 ## Risks
 

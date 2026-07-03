@@ -1,10 +1,11 @@
 "use client";
 
-import { ArrowRight, LockKeyhole, UserPlus } from "lucide-react";
+import { ArrowRight, Loader2, LockKeyhole, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { SessionToast, ToastNotice, setNextToast, useToast } from "@/components/toast";
 import { Button, Field, Panel, inputClass } from "@/components/ui";
 import { getPasswordPolicyError, PASSWORD_POLICY_HINT } from "@/lib/password-policy";
 
@@ -16,17 +17,20 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [pending, setPending] = useState(false);
+  const { toast, showToast, clearToast } = useToast();
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     setError("");
     setNotice("");
+    showToast(mode === "signup" ? "Creating your account..." : "Signing you in...", "loading");
 
     if (mode === "signup") {
       const passwordError = getPasswordPolicyError(password, { email, name });
       if (passwordError) {
         setError(passwordError);
+        showToast(passwordError, "error");
         setPending(false);
         return;
       }
@@ -40,7 +44,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
     if (!response.ok) {
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      setError(payload?.error || "Authentication failed.");
+      const message = payload?.error || "Authentication failed.";
+      setError(message);
+      showToast(message, "error");
       setPending(false);
       return;
     }
@@ -49,16 +55,20 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
     if (payload?.needsEmailConfirmation) {
       setNotice("Account created. Check your email to confirm before signing in.");
+      showToast("Account created. Check your email to confirm before signing in.", "success");
       setPending(false);
       return;
     }
 
+    setNextToast(mode === "signup" ? "Account created. You are signed in." : "Signed in.", "success");
     router.push("/dashboard");
     router.refresh();
   }
 
   return (
     <Panel className="w-full max-w-md p-6">
+      <SessionToast />
+      <ToastNotice toast={toast} onDismiss={clearToast} />
       <div className="mb-6 grid gap-2">
         <div className="grid h-10 w-10 place-items-center rounded-md bg-stone-950 text-white">
           {mode === "signup" ? <UserPlus className="h-5 w-5" /> : <LockKeyhole className="h-5 w-5" />}
@@ -97,8 +107,17 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         {error ? <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div> : null}
         {notice ? <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{notice}</div> : null}
         <Button type="submit" disabled={pending}>
-          {pending ? "Working..." : mode === "signup" ? "Create account" : "Sign in"}
-          <ArrowRight className="h-4 w-4" />
+          {pending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {mode === "signup" ? "Creating account" : "Signing in"}
+            </>
+          ) : (
+            <>
+              {mode === "signup" ? "Create account" : "Sign in"}
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
         </Button>
       </form>
       <div className="mt-5 text-sm text-stone-600">

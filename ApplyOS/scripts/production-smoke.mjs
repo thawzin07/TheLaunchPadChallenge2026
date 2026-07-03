@@ -95,7 +95,6 @@ async function main() {
 
   const baseUrl = (process.env.SMOKE_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, "");
   const expectedAiProvider = process.env.SMOKE_EXPECT_AI_PROVIDER || DEFAULT_EXPECTED_AI_PROVIDER;
-  const bucket = process.env.SUPABASE_STORAGE_BUCKET || "resumes";
   const suffix = `${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
   const email = `codex-prod-${suffix}@example.com`;
   const password = `CodexProd2026!${suffix}`;
@@ -110,7 +109,6 @@ async function main() {
   });
   const prisma = new PrismaClient();
   const cookies = new Map();
-  const uploadedPaths = [];
   let authUserId = null;
   let jobId = null;
   let resumeId = null;
@@ -217,18 +215,23 @@ async function main() {
       body: form,
     });
     assert(upload.file?.extractedTextAvailable === true, "Resume upload did not extract text.");
-    assert(upload.file?.path, "Resume upload did not return a storage path.");
-    uploadedPaths.push(upload.file.path);
+    assert(upload.file?.id, "Resume upload did not return a resume id.");
+    assert(upload.file?.downloadUrl, "Resume upload did not return an authenticated download URL.");
+    resumeId = upload.file.id;
     console.log("resumeUpload=ok");
 
     const resumes = await api(baseUrl, cookies, "/api/profile/resumes");
     const uploadedResume = (resumes.resumes || []).find((resume) => resume.fileName === "codex-smoke-resume.txt");
-    assert(uploadedResume?.signedUrl, "Resume retrieval did not return a signed URL.");
+    assert(uploadedResume?.downloadUrl, "Resume retrieval did not return an authenticated download URL.");
     assert(uploadedResume?.extractedTextPreview, "Resume retrieval did not return an extracted text preview.");
     resumeId = uploadedResume.id;
     console.log("resumeRetrieval=ok");
 
+    const download = await expectStatus(baseUrl, "resumeDownload", uploadedResume.downloadUrl, 200, {}, cookies);
+    assert(download.text.includes("Codex smoke resume"), "Resume download did not return the uploaded file.");
+
     await api(baseUrl, cookies, `/api/profile/resumes?id=${encodeURIComponent(resumeId)}`, { method: "DELETE" });
+    resumeId = null;
     console.log("resumeDelete=ok");
 
     const analysis = await api(baseUrl, cookies, "/api/analyze", {
@@ -271,10 +274,20 @@ async function main() {
     console.log("productionSmoke=ok");
   } finally {
     if (resumeId) {
-      await prisma.resumeFile.deleteMany({ where: { id: resumeId } }).catch(() => null);
+      const resume = await prisma.resumeFile.findUnique({ where: { id: resumeId } }).catch(() => null);
+      if (resume) {
+        await supabase.storage.from(resume.bucket).remove([resume.path]).catch(() => null);
+        await prisma.resumeFile.delete({ where: { id: resume.id } }).catch(() => null);
+      }
     }
-    for (const storagePath of uploadedPaths) {
-      await supabase.storage.from(bucket).remove([storagePath]).catch(() => null);
+    if (authUserId) {
+      const leftoverResumes = await prisma.resumeFile
+        .findMany({ where: { userId: authUserId }, select: { id: true, bucket: true, path: true } })
+        .catch(() => []);
+      for (const resume of leftoverResumes) {
+        await supabase.storage.from(resume.bucket).remove([resume.path]).catch(() => null);
+      }
+      await prisma.resumeFile.deleteMany({ where: { userId: authUserId } }).catch(() => null);
     }
     if (authUserId) {
       await prisma.user.delete({ where: { id: authUserId } }).catch(() => null);

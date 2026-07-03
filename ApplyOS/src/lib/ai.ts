@@ -14,6 +14,11 @@ import type {
 
 type AiTask = "fit_analysis" | "application_pack" | "interview_prep";
 type UnknownRecord = Record<string, unknown>;
+type ResumeFileInput = {
+  fileName: string;
+  contentType: string;
+  base64: string;
+};
 
 function mockMode() {
   return (process.env.AI_MOCK_MODE ?? "true").toLowerCase() !== "false";
@@ -152,6 +157,35 @@ function sanitizeInterviewPrep(value: unknown, fallback: InterviewPrepResult): I
   };
 }
 
+function resumeFileFromExtra(extra: unknown): ResumeFileInput | null {
+  if (!isRecord(extra) || !isRecord(extra.resumeFile)) return null;
+  const resumeFile = extra.resumeFile;
+  const fileName = stringValue(resumeFile.fileName);
+  const contentType = stringValue(resumeFile.contentType, "application/octet-stream");
+  const base64 = stringValue(resumeFile.base64);
+
+  if (!fileName || !base64) return null;
+  return { fileName, contentType, base64 };
+}
+
+function extraForPrompt(extra: unknown) {
+  if (!isRecord(extra) || !isRecord(extra.resumeFile)) return extra;
+  const { resumeFile, ...rest } = extra;
+  const fileName = stringValue(resumeFile.fileName);
+  const contentType = stringValue(resumeFile.contentType, "application/octet-stream");
+
+  return {
+    ...rest,
+    resumeFile: fileName
+      ? {
+          fileName,
+          contentType,
+          includedAsOpenAIFileInput: true,
+        }
+      : undefined,
+  };
+}
+
 async function fetchWithTimeout(url: string, init: RequestInit) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs());
@@ -172,26 +206,53 @@ function systemPrompt(task: AiTask) {
     fit_analysis:
       "Return keys: overallScore number 0-100, confidence low|medium|high, summary string, matchedRequirements array of {requirement,status,evidence}, missingRequirements string[], evidenceMatches array of {claim,evidence,status}, risks string[], recommendations string[].",
     application_pack:
-      "Return keys: resumeBullets string[], resumeDraft string, coverLetter string, recruiterMessage string, keywords string[], claimsToAvoid string[], evidenceLinks array of {claim,evidence,status}.",
+      "Return keys: resumeBullets string[], resumeDraft string, coverLetter string, recruiterMessage string, keywords string[], claimsToAvoid string[], evidenceLinks array of {claim,evidence,status}. The resumeDraft must be a tailored version of the applicant's existing resume/profile for this job description.",
     interview_prep:
       "Return keys: questions string[], answerGuidance string[], gapQuestions string[], technicalTopics string[], behavioralStories string[].",
   } satisfies Record<AiTask, string>;
 
-  return `You are ApplyOS, an evidence-first career copilot for Singapore students and fresh graduates. Return strict JSON only. Never invent experience, metrics, degrees, certifications, employment, or links. Mark unsupported claims clearly with status "unsupported" or "gap". ${schemas[task]} Task: ${task}.`;
+  return `You are ApplyOS, a career copilot for Singapore students and fresh graduates. Return strict JSON only. Never invent employers, degrees, certifications, dates, links, or hard metrics. For resume tailoring, improve ordering, phrasing, keywords, and emphasis from the existing resume/profile even when evidence matching is incomplete. ${schemas[task]} Task: ${task}.`;
 }
 
-function inputPayload(profile: ParsedProfile, job: NormalizedJob, extra?: unknown) {
+function inputPayload(task: AiTask, profile: ParsedProfile, job: NormalizedJob, extra?: unknown) {
+  const instructions = {
+    fit_analysis:
+      "Use profile evidence to explain fit, gaps, and risk. Mark unsupported claims clearly.",
+    application_pack:
+      "Tailor the existing resume/profile to the job description. Do not require perfect evidence links before producing useful resume bullets or a resume draft. Keep claims plausible from the supplied resume/profile and avoid fabricating employers, education, certifications, dates, links, or exact metrics.",
+    interview_prep:
+      "Generate role-specific interview preparation from the profile and job. Keep weak areas honest and useful.",
+  } satisfies Record<AiTask, string>;
+
   return JSON.stringify(
     {
       profile,
       job,
-      extra,
-      instruction:
-        "Use only the profile evidence. Produce concise, practical outputs suitable for a job applicant.",
+      extra: extraForPrompt(extra),
+      instruction: instructions[task],
     },
     null,
     2,
   );
+}
+
+function openAiUserContent(task: AiTask, profile: ParsedProfile, job: NormalizedJob, extra?: unknown) {
+  const payload = inputPayload(task, profile, job, extra);
+  const resumeFile = task === "application_pack" ? resumeFileFromExtra(extra) : null;
+
+  if (!resumeFile) return payload;
+
+  return [
+    {
+      type: "input_file",
+      filename: resumeFile.fileName,
+      file_data: `data:${resumeFile.contentType};base64,${resumeFile.base64}`,
+    },
+    {
+      type: "input_text",
+      text: payload,
+    },
+  ];
 }
 
 async function callOpenAI<T>(task: AiTask, profile: ParsedProfile, job: NormalizedJob, extra?: unknown) {
@@ -209,7 +270,7 @@ async function callOpenAI<T>(task: AiTask, profile: ParsedProfile, job: Normaliz
       model,
       input: [
         { role: "system", content: systemPrompt(task) },
-        { role: "user", content: inputPayload(profile, job, extra) },
+        { role: "user", content: openAiUserContent(task, profile, job, extra) },
       ],
       text: {
         format: { type: "json_object" },
@@ -251,7 +312,7 @@ async function callOpenCompatible<T>(
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt(task) },
-        { role: "user", content: inputPayload(profile, job, extra) },
+        { role: "user", content: inputPayload(task, profile, job, extra) },
       ],
     }),
   });
@@ -339,6 +400,7 @@ export async function generateApplicationPack(
   job: NormalizedJob,
   analysis: FitAnalysisResult,
   userId?: string,
+  extra?: unknown,
 ): Promise<ApplicationPackResult> {
   const started = Date.now();
   const fallback = buildApplicationPack(profile, job, analysis);
@@ -356,7 +418,10 @@ export async function generateApplicationPack(
   }
 
   try {
-    const result = await callPrimary<ApplicationPackResult>("application_pack", profile, job, analysis);
+    const result = await callPrimary<ApplicationPackResult>("application_pack", profile, job, {
+      analysis,
+      ...(isRecord(extra) ? extra : {}),
+    });
     await recordApiRun({
       userId,
       type: "ai.application_pack",
