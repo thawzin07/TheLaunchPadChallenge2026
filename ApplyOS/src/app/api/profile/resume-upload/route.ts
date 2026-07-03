@@ -4,8 +4,10 @@ import { withApiErrors } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
 import { ensureDatabase, prisma } from "@/lib/db";
 import { parseProfile, serializeProfile } from "@/lib/profile";
+import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { extractResumeText } from "@/lib/resume";
 import { getStorageBucket, getSupabaseAdmin } from "@/lib/supabase";
+import type { NextRequest } from "next/server";
 
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
 const ACCEPTED_TYPES = new Set([
@@ -25,7 +27,10 @@ function safeFileName(fileName: string) {
   return clean || fallback;
 }
 
-export const POST = withApiErrors(async (request: Request) => {
+export const POST = withApiErrors(async (request: NextRequest) => {
+  const originError = rejectUntrustedOrigin(request);
+  if (originError) return originError;
+
   const user = await requireUser();
   await ensureDatabase();
 

@@ -5,6 +5,8 @@ import { withApiErrors } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
 import { ensureDatabase, prisma } from "@/lib/db";
 import { parseProfile, serializeProfile } from "@/lib/profile";
+import { rejectUntrustedOrigin } from "@/lib/request-security";
+import type { NextRequest } from "next/server";
 import type { EvidenceItem, ParsedProfile } from "@/lib/types";
 
 const evidenceSchema = z.object({
@@ -39,7 +41,10 @@ export const GET = withApiErrors(async () => {
   return NextResponse.json({ profile: parseProfile(profile) });
 });
 
-export const PUT = withApiErrors(async (request: Request) => {
+export const PUT = withApiErrors(async (request: NextRequest) => {
+  const originError = rejectUntrustedOrigin(request);
+  if (originError) return originError;
+
   const user = await requireUser();
   const input = profileSchema.parse(await request.json());
   await ensureDatabase();

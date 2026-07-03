@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import { withApiErrors } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
 import { ensureDatabase, prisma } from "@/lib/db";
+import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import type { NextRequest } from "next/server";
 
 function serializeResume(input: {
   id: string;
@@ -53,7 +55,10 @@ export const GET = withApiErrors(async () => {
   return NextResponse.json({ resumes: signed });
 });
 
-export const DELETE = withApiErrors(async (request: Request) => {
+export const DELETE = withApiErrors(async (request: NextRequest) => {
+  const originError = rejectUntrustedOrigin(request);
+  if (originError) return originError;
+
   const user = await requireUser();
   await ensureDatabase();
 

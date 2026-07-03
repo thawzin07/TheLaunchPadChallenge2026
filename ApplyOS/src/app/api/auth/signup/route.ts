@@ -30,9 +30,24 @@ function withAuthCookies(source: NextResponse, body: unknown, init?: ResponseIni
 }
 
 function canUseSignupFallback(errorMessage?: string) {
+  const normalized = errorMessage?.toLowerCase() ?? "";
   return (
     process.env.AUTH_ALLOW_UNVERIFIED_SIGNUP_FALLBACK === "true" &&
-    Boolean(errorMessage?.toLowerCase().includes("email rate limit"))
+    Boolean(
+      normalized.includes("email rate limit") ||
+        (normalized.includes("rate limit") && normalized.includes("email")) ||
+        normalized.includes("email send rate") ||
+        normalized.includes("over email send rate"),
+    )
+  );
+}
+
+function isExistingUserError(errorMessage?: string) {
+  const normalized = errorMessage?.toLowerCase() ?? "";
+  return (
+    normalized.includes("already registered") ||
+    normalized.includes("already exists") ||
+    normalized.includes("user already")
   );
 }
 
@@ -100,7 +115,9 @@ export async function POST(request: NextRequest) {
       });
 
       if (created.error || !created.data.user?.id || !created.data.user.email) {
-        return NextResponse.json({ error: created.error?.message || "Could not create account." }, { status: 400 });
+        if (!isExistingUserError(created.error?.message)) {
+          return NextResponse.json({ error: created.error?.message || "Could not create account." }, { status: 400 });
+        }
       }
 
       const signedIn = await supabase.auth.signInWithPassword({
@@ -109,7 +126,10 @@ export async function POST(request: NextRequest) {
       });
 
       if (signedIn.error || !signedIn.data.user?.id || !signedIn.data.user.email) {
-        return NextResponse.json({ error: signedIn.error?.message || "Could not sign in." }, { status: 401 });
+        return NextResponse.json(
+          { error: "An account with this email already exists. Sign in instead, or reset your password." },
+          { status: 409 },
+        );
       }
 
       authUser = signedIn.data.user;

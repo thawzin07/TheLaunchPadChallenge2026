@@ -29,6 +29,8 @@ Production MVP implementation and verification.
 - Added an env-gated signup fallback for Supabase email rate-limit incidents.
 - Added shared password-strength validation for signup and password reset.
 - Added same-origin checks and lightweight rate limiting for auth mutation routes.
+- Added same-origin checks for state-changing profile, resume, application, analysis, application-pack, interview-prep, and logout routes.
+- Added reusable production smoke verification script.
 - Added protected app routes and a private user profile workspace.
 - Added Prisma data models.
 - Switched database configuration from local SQLite to Supabase Postgres.

@@ -69,10 +69,16 @@ Important variables:
 ```bash
 npm run db:generate
 npm run db:push
-npx tsc --noEmit
-npm run lint
-npm run build
+npm run verify
 ```
+
+Production smoke test:
+
+```bash
+npm run smoke:production
+```
+
+The smoke test creates a disposable confirmed Supabase Auth user and a disposable smoke job, signs in through the live app, uploads/retrieves/deletes a TXT resume, runs OpenAI fit analysis, saves an application, generates an application pack and interview prep, verifies key origin/password guards, then cleans up the auth user, app rows, and storage object. Set `SMOKE_BASE_URL` to test a non-production deployment and `SMOKE_EXPECT_AI_PROVIDER` if the primary AI provider changes.
 
 ## Supabase Database URLs
 

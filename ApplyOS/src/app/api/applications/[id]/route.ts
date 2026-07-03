@@ -4,7 +4,9 @@ import { z } from "zod";
 import { withApiErrors } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
 import { ensureDatabase, prisma } from "@/lib/db";
+import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { serializeApplication } from "@/lib/serializers";
+import type { NextRequest } from "next/server";
 
 const updateApplicationSchema = z.object({
   status: z.string().optional(),
@@ -21,7 +23,10 @@ function parseNullableDate(value?: string | null) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export const PATCH = withApiErrors(async (request: Request, context: { params: Promise<{ id: string }> }) => {
+export const PATCH = withApiErrors(async (request: NextRequest, context: { params: Promise<{ id: string }> }) => {
+  const originError = rejectUntrustedOrigin(request);
+  if (originError) return originError;
+
   const user = await requireUser();
   const { id } = await context.params;
   const input = updateApplicationSchema.parse(await request.json());

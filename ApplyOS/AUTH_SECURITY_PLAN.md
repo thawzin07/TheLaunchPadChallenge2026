@@ -53,6 +53,7 @@ Treat this as private user data.
 - Enforce a shared password policy on signup and password reset.
 - Throttle repeated auth mutations by client address and target email where applicable.
 - Reject cross-origin auth mutation requests.
+- Reject cross-origin state-changing application requests.
 - Return `400` for malformed auth JSON instead of leaking generic server errors.
 
 ## Current Auth Implementation
@@ -65,6 +66,7 @@ Treat this as private user data.
 - Signup uses Supabase email confirmation first. `AUTH_ALLOW_UNVERIFIED_SIGNUP_FALLBACK=true` is only a demo continuity fallback while Supabase email limits are active.
 - Password reset uses `/forgot-password`, `/auth/confirm?next=/reset-password`, and `/reset-password`.
 - Auth mutation routes use same-origin checks and in-process rate limiting as an application-level guard in addition to Supabase Auth rate limits.
+- Profile, resume, application, analysis, application-pack, interview-prep, and logout mutation routes use the same origin guard before touching private data.
 
 ## Dashboard Security Follow-Up
 

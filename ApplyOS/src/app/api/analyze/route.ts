@@ -7,13 +7,18 @@ import { requireUser } from "@/lib/auth";
 import { ensureDatabase, prisma } from "@/lib/db";
 import { stringifyJson } from "@/lib/json";
 import { normalizeStoredJob } from "@/lib/jobs";
+import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { serializeAnalysis } from "@/lib/serializers";
+import type { NextRequest } from "next/server";
 
 const analyzeSchema = z.object({
   jobId: z.string().min(1),
 });
 
-export const POST = withApiErrors(async (request: Request) => {
+export const POST = withApiErrors(async (request: NextRequest) => {
+  const originError = rejectUntrustedOrigin(request);
+  if (originError) return originError;
+
   const user = await requireUser();
   const input = analyzeSchema.parse(await request.json());
   await ensureDatabase();

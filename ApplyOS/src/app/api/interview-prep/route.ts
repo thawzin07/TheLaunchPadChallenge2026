@@ -7,7 +7,9 @@ import { requireUser } from "@/lib/auth";
 import { ensureDatabase, prisma } from "@/lib/db";
 import { stringifyJson } from "@/lib/json";
 import { normalizeStoredJob } from "@/lib/jobs";
+import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { serializeAnalysis, serializeApplication, serializeInterview } from "@/lib/serializers";
+import type { NextRequest } from "next/server";
 
 const interviewSchema = z.object({
   applicationId: z.string().min(1),
@@ -31,7 +33,10 @@ export const GET = withApiErrors(async () => {
   return NextResponse.json({ applications: applications.map(serializeApplication) });
 });
 
-export const POST = withApiErrors(async (request: Request) => {
+export const POST = withApiErrors(async (request: NextRequest) => {
+  const originError = rejectUntrustedOrigin(request);
+  if (originError) return originError;
+
   const user = await requireUser();
   const input = interviewSchema.parse(await request.json());
   await ensureDatabase();

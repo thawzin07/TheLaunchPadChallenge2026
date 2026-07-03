@@ -4,7 +4,9 @@ import { z } from "zod";
 import { withApiErrors } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
 import { ensureDatabase, prisma } from "@/lib/db";
+import { rejectUntrustedOrigin } from "@/lib/request-security";
 import { serializeApplication } from "@/lib/serializers";
+import type { NextRequest } from "next/server";
 
 const createApplicationSchema = z.object({
   jobId: z.string().min(1),
@@ -31,7 +33,10 @@ export const GET = withApiErrors(async () => {
   });
 });
 
-export const POST = withApiErrors(async (request: Request) => {
+export const POST = withApiErrors(async (request: NextRequest) => {
+  const originError = rejectUntrustedOrigin(request);
+  if (originError) return originError;
+
   const user = await requireUser();
   const input = createApplicationSchema.parse(await request.json());
   await ensureDatabase();
