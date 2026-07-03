@@ -151,6 +151,12 @@ Deployment verification on 2026-07-03:
   - local production `next start` probe rejects common weak signup passwords with `400`,
   - local production `next start` probe rejects cross-origin auth POSTs with `403`,
   - malformed auth JSON returns `400` instead of a generic server error.
+- Post-hardening production verification:
+  - deployed commit `8cf730b` to Vercel deployment `dpl_4JAZHVZpCmZdrXLouutiXNFbGMGe`,
+  - production alias `https://applyos-sable.vercel.app` moved to the new deployment,
+  - live `/api/health` returned `200` with Supabase Postgres, Storage, and OpenAI configured,
+  - live auth hardening probes returned weak signup `400`, cross-origin login `403`, and malformed signup JSON `400`,
+  - live authenticated smoke with a disposable confirmed user passed login/session, demo profile, TXT resume upload/retrieval, OpenAI fit analysis, application save, OpenAI application pack, OpenAI interview prep, and cleanup.
 
 ## Risks
 
