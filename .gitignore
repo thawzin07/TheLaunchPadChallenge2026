@@ -1,0 +1,39 @@
+# Dependencies and package-manager state
+node_modules/
+**/node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Next.js and build output
+.next/
+**/.next/
+out/
+build/
+coverage/
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+
+# Runtime logs and local generated state
+*.log
+*.err
+*.tsbuildinfo
+.vercel/
+**/.vercel/
+
+# Local databases and generated clients
+*.db
+*.db-*
+**/src/generated/prisma/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+*.pem

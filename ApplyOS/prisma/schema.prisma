@@ -1,0 +1,201 @@
+// Prisma schema for ApplyOS, backed by Supabase Postgres.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String        @id
+  email        String        @unique
+  name         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  profile      UserProfile?
+  resumes      ResumeFile[]
+  analyses     FitAnalysis[]
+  applications Application[]
+  packs        ApplicationPack[]
+  interviews   InterviewPrep[]
+  apiRuns      ApiRun[]
+}
+
+model UserProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  headline           String   @default("")
+  summary            String   @default("")
+  resumeText         String   @default("")
+  educationJson      String   @default("[]")
+  skillsJson         String   @default("[]")
+  projectsJson       String   @default("[]")
+  experienceJson     String   @default("[]")
+  certificationsJson String   @default("[]")
+  courseworkJson     String   @default("[]")
+  preferencesJson    String   @default("{}")
+  evidenceJson       String   @default("[]")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ResumeFile {
+  id            String   @id @default(cuid())
+  userId        String
+  bucket        String
+  path          String   @unique
+  fileName      String
+  contentType   String
+  sizeBytes     Int
+  extractedText String   @default("")
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model JobListing {
+  id                 String        @id @default(cuid())
+  source             String
+  sourceJobId        String
+  sourceUrl          String
+  title              String
+  company            String
+  location           String        @default("")
+  workMode           String        @default("unknown")
+  employmentTypeJson String        @default("[]")
+  seniorityJson      String        @default("[]")
+  salaryMin          Int?
+  salaryMax          Int?
+  salaryCurrency     String        @default("SGD")
+  postedAt           DateTime?
+  expiresAt          DateTime?
+  descriptionText    String        @default("")
+  skillsJson         String        @default("[]")
+  rawSourceHash      String        @default("")
+  fetchedAt          DateTime      @default(now())
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  analyses           FitAnalysis[]
+  applications       Application[]
+
+  @@unique([source, sourceJobId])
+  @@index([source])
+  @@index([company])
+}
+
+model FitAnalysis {
+  id                      String        @id @default(cuid())
+  userId                  String
+  jobListingId            String
+  overallScore            Int
+  confidence              String        @default("medium")
+  summary                 String
+  matchedRequirementsJson String        @default("[]")
+  missingRequirementsJson String        @default("[]")
+  evidenceMatchesJson     String        @default("[]")
+  risksJson               String        @default("[]")
+  recommendationsJson     String        @default("[]")
+  provider                String        @default("mock")
+  model                   String        @default("deterministic")
+  latencyMs               Int           @default(0)
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  user                    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobListing              JobListing    @relation(fields: [jobListingId], references: [id], onDelete: Cascade)
+  applications            Application[]
+
+  @@index([userId])
+  @@index([jobListingId])
+}
+
+model Application {
+  id              String           @id @default(cuid())
+  userId          String
+  jobListingId    String
+  fitAnalysisId   String?
+  status          String           @default("saved")
+  sourceUrl       String
+  appliedAt       DateTime?
+  followUpAt      DateTime?
+  interviewAt     DateTime?
+  notes           String           @default("")
+  outcome         String           @default("")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobListing      JobListing       @relation(fields: [jobListingId], references: [id], onDelete: Cascade)
+  fitAnalysis     FitAnalysis?     @relation(fields: [fitAnalysisId], references: [id], onDelete: SetNull)
+  applicationPack ApplicationPack?
+  interviewPrep   InterviewPrep?
+
+  @@unique([userId, jobListingId])
+  @@index([userId])
+  @@index([jobListingId])
+  @@index([fitAnalysisId])
+  @@index([status])
+}
+
+model ApplicationPack {
+  id                String      @id @default(cuid())
+  userId            String
+  applicationId     String      @unique
+  resumeBulletsJson String      @default("[]")
+  resumeDraft       String      @default("")
+  coverLetter       String      @default("")
+  recruiterMessage  String      @default("")
+  keywordsJson      String      @default("[]")
+  claimsToAvoidJson String      @default("[]")
+  evidenceLinksJson String      @default("[]")
+  provider          String      @default("mock")
+  model             String      @default("deterministic")
+  latencyMs         Int         @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application       Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model InterviewPrep {
+  id                   String      @id @default(cuid())
+  userId               String
+  applicationId        String      @unique
+  questionsJson        String      @default("[]")
+  answerGuidanceJson   String      @default("[]")
+  gapQuestionsJson     String      @default("[]")
+  technicalTopicsJson  String      @default("[]")
+  behavioralStoriesJson String     @default("[]")
+  provider             String      @default("mock")
+  model                String      @default("deterministic")
+  latencyMs            Int         @default(0)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  user                 User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application          Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ApiRun {
+  id              String   @id @default(cuid())
+  userId          String?
+  type            String
+  provider        String
+  modelOrEndpoint String
+  status          String
+  latencyMs       Int
+  errorMessage    String   @default("")
+  createdAt       DateTime @default(now())
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([type])
+  @@index([provider])
+}
