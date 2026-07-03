@@ -120,6 +120,13 @@ Deployment verification on 2026-07-03:
 - Live `/api/health` returned `200` and reported Supabase Postgres ready.
 - Live unauthenticated `/api/profile` returned `401`.
 - First Git-triggered production deployment from `main` reached `Ready` and the production alias moved to it.
+- Password reset deployment verification:
+  - live `/forgot-password` returned `200`,
+  - invalid reset request returns `400`,
+  - unauthenticated reset update returns `401`,
+  - authenticated reset update returns `200`,
+  - login with the updated password returns `200`,
+  - test auth user cleanup passed.
 - Production authenticated E2E smoke passed with a disposable confirmed user:
   - login/session read,
   - demo profile load,
