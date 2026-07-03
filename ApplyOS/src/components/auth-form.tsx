@@ -105,6 +105,10 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             <Link className="font-medium text-stone-950 underline underline-offset-4" href="/sign-up">
               Create an account
             </Link>
+            <span className="mx-2 text-stone-300">/</span>
+            <Link className="font-medium text-stone-950 underline underline-offset-4" href="/forgot-password">
+              Reset password
+            </Link>
           </>
         )}
       </div>

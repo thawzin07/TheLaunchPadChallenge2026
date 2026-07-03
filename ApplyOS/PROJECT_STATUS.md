@@ -25,6 +25,7 @@ Production MVP implementation and verification.
 - Updated `AGENTS.md` and `MASTER_BUILD_PROMPT.md` to reference `UI_PROMPT.md`.
 - Scaffolded a Next.js 16 + TypeScript + Tailwind application.
 - Replaced local credentials authentication with Supabase Auth and cookie-based SSR sessions.
+- Added password reset request and update flow through Supabase Auth recovery links.
 - Added protected app routes and a private user profile workspace.
 - Added Prisma data models.
 - Switched database configuration from local SQLite to Supabase Postgres.
@@ -119,6 +120,15 @@ Deployment verification on 2026-07-03:
 - Live `/api/health` returned `200` and reported Supabase Postgres ready.
 - Live unauthenticated `/api/profile` returned `401`.
 - First Git-triggered production deployment from `main` reached `Ready` and the production alias moved to it.
+- Production authenticated E2E smoke passed with a disposable confirmed user:
+  - login/session read,
+  - demo profile load,
+  - TXT resume upload, signed retrieval, extracted text preview, and delete,
+  - OpenAI fit analysis,
+  - application save,
+  - OpenAI application pack,
+  - OpenAI interview prep,
+  - auth/app/storage cleanup.
 
 ## Risks
 
@@ -133,6 +143,6 @@ Deployment verification on 2026-07-03:
 ## Next
 
 - Run a full authenticated browser smoke test with a fresh signup/login once Supabase email limits are clear.
-- Add password reset and optional email confirmation UX polish.
 - Confirm Supabase Auth production redirect URLs include `https://applyos-sable.vercel.app/auth/confirm`.
+- Enable Supabase leaked password protection in the Auth dashboard.
 - Add a custom domain if the project needs one for judging/demo polish.

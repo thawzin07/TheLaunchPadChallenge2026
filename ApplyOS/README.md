@@ -8,6 +8,7 @@ ApplyOS is a production-shaped internship/job application workspace for The Laun
 - Tailwind CSS 4, lucide-react
 - Prisma with Supabase Postgres persistence
 - Supabase Auth with cookie-based SSR sessions and protected routes
+- Email/password signup, login, logout, confirmation callback, and password reset recovery
 - Supabase Storage private resume uploads with database-backed file records and signed retrieval links
 - PDF, DOCX, and TXT resume text extraction
 - Job adapters: MyCareersFuture, Adzuna SG, Greenhouse, Lever, mock fallback
@@ -30,14 +31,15 @@ Before `npm run db:push`, replace the Supabase placeholders in `.env` with your 
 ## Demo Flow
 
 1. Create an account or sign in.
-2. Go to Profile, load the demo profile, or upload a PDF, DOCX, or TXT resume.
-3. Review uploaded resumes, open signed links, and delete files when needed.
-4. Go to Jobs and search for a Singapore internship role.
-5. Select a role, run fit analysis, save it, and generate an application pack.
-6. Review and copy tailored bullets, a resume draft, a cover letter, and recruiter message.
-7. Go to Applications to track status and copy saved materials.
-8. Go to Interview Prep and generate role-specific questions.
-9. Go to Settings to show API health and configured/missing providers.
+2. Use password reset from the login screen if you need account recovery.
+3. Go to Profile, load the demo profile, or upload a PDF, DOCX, or TXT resume.
+4. Review uploaded resumes, open signed links, and delete files when needed.
+5. Go to Jobs and search for a Singapore internship role.
+6. Select a role, run fit analysis, save it, and generate an application pack.
+7. Review and copy tailored bullets, a resume draft, a cover letter, and recruiter message.
+8. Go to Applications to track status and copy saved materials.
+9. Go to Interview Prep and generate role-specific questions.
+10. Go to Settings to show API health and configured/missing providers.
 
 ## Environment
 

@@ -9,6 +9,7 @@ function safeNextPath(value: string | null) {
 }
 
 export async function GET(request: NextRequest) {
+  const code = request.nextUrl.searchParams.get("code");
   const tokenHash = request.nextUrl.searchParams.get("token_hash");
   const type = request.nextUrl.searchParams.get("type") as EmailOtpType | null;
   const nextPath = safeNextPath(request.nextUrl.searchParams.get("next"));
@@ -18,9 +19,14 @@ export async function GET(request: NextRequest) {
   successUrl.search = "";
 
   const successResponse = NextResponse.redirect(successUrl);
+  const supabase = createSupabaseRouteClient(request, successResponse);
+
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) return successResponse;
+  }
 
   if (tokenHash && type) {
-    const supabase = createSupabaseRouteClient(request, successResponse);
     const { error } = await supabase.auth.verifyOtp({
       type,
       token_hash: tokenHash,
