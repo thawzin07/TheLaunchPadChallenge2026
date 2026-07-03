@@ -118,6 +118,7 @@ Deployment verification on 2026-07-03:
 - Live `/login` returned `200`.
 - Live `/api/health` returned `200` and reported Supabase Postgres ready.
 - Live unauthenticated `/api/profile` returned `401`.
+- First Git-triggered production deployment from `main` reached `Ready` and the production alias moved to it.
 
 ## Risks
 
@@ -134,4 +135,4 @@ Deployment verification on 2026-07-03:
 - Run a full authenticated browser smoke test with a fresh signup/login once Supabase email limits are clear.
 - Add password reset and optional email confirmation UX polish.
 - Confirm Supabase Auth production redirect URLs include `https://applyos-sable.vercel.app/auth/confirm`.
-- Watch the first Git-triggered Vercel deployment from a pushed commit.
+- Add a custom domain if the project needs one for judging/demo polish.
