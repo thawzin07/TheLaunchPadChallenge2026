@@ -159,6 +159,10 @@ Deployment verification on 2026-07-03:
   - live `/api/health` returned `200` with Supabase Postgres, Storage, and OpenAI configured,
   - live auth hardening probes returned weak signup `400`, cross-origin login `403`, and malformed signup JSON `400`,
   - live authenticated smoke with a disposable confirmed user passed login/session, demo profile, TXT resume upload/retrieval, OpenAI fit analysis, application save, OpenAI application pack, OpenAI interview prep, and cleanup.
+- Signup-rate-limit follow-up verification:
+  - deployed commit `0c4d927` to Vercel deployment `dpl_7QKQpzpS5s1y7d3GQLfiBHPs9G7o`,
+  - live signup under Supabase email-rate-limit conditions returned `200` with `emailConfirmationBypassed: true`,
+  - `npm run smoke:production` passed against `https://applyos-sable.vercel.app`.
 
 ## Risks
 
