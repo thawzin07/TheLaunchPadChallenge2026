@@ -31,6 +31,7 @@ Production MVP implementation and verification.
 - Added same-origin checks and lightweight rate limiting for auth mutation routes.
 - Added same-origin checks for state-changing profile, resume, application, analysis, application-pack, interview-prep, and logout routes.
 - Added reusable production smoke verification script.
+- Added GitHub Actions CI for install, Prisma client generation, typecheck, lint, build, and audit.
 - Added protected app routes and a private user profile workspace.
 - Added Prisma data models.
 - Switched database configuration from local SQLite to Supabase Postgres.
@@ -163,6 +164,8 @@ Deployment verification on 2026-07-03:
   - deployed commit `0c4d927` to Vercel deployment `dpl_7QKQpzpS5s1y7d3GQLfiBHPs9G7o`,
   - live signup under Supabase email-rate-limit conditions returned `200` with `emailConfirmationBypassed: true`,
   - `npm run smoke:production` passed against `https://applyos-sable.vercel.app`.
+- CI verification:
+  - with local `.env` and `.env.local` hidden, `npm ci`, `npm run db:generate`, and `npm run verify` passed.
 
 ## Risks
 

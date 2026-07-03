@@ -72,6 +72,8 @@ npm run db:push
 npm run verify
 ```
 
+GitHub Actions runs `npm ci`, `npm run db:generate`, and `npm run verify` on pushes to `main` and pull requests.
+
 Production smoke test:
 
 ```bash
