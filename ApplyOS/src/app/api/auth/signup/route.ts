@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { ensureDatabase, prisma } from "@/lib/db";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { createSupabaseRouteClient } from "@/lib/supabase-ssr";
 import type { NextRequest } from "next/server";
 
@@ -23,6 +24,13 @@ function withAuthCookies(source: NextResponse, body: unknown, init?: ResponseIni
   return response;
 }
 
+function canUseSignupFallback(errorMessage?: string) {
+  return (
+    process.env.AUTH_ALLOW_UNVERIFIED_SIGNUP_FALLBACK === "true" &&
+    Boolean(errorMessage?.toLowerCase().includes("email rate limit"))
+  );
+}
+
 export async function POST(request: NextRequest) {
   const response = NextResponse.json({ ok: true });
 
@@ -41,19 +49,54 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (error || !data.user?.id || !data.user.email) {
-      return NextResponse.json({ error: error?.message || "Could not create account." }, { status: 400 });
+    let authUser = data.user;
+    let session = data.session;
+    let usedUnverifiedFallback = false;
+
+    if (error && canUseSignupFallback(error.message)) {
+      const admin = getSupabaseAdmin();
+      const created = await admin.auth.admin.createUser({
+        email,
+        password: input.password,
+        email_confirm: true,
+        user_metadata: { name: input.name.trim() },
+      });
+
+      if (created.error || !created.data.user?.id || !created.data.user.email) {
+        return NextResponse.json({ error: created.error?.message || "Could not create account." }, { status: 400 });
+      }
+
+      const signedIn = await supabase.auth.signInWithPassword({
+        email,
+        password: input.password,
+      });
+
+      if (signedIn.error || !signedIn.data.user?.id || !signedIn.data.user.email) {
+        return NextResponse.json({ error: signedIn.error?.message || "Could not sign in." }, { status: 401 });
+      }
+
+      authUser = signedIn.data.user;
+      session = signedIn.data.session;
+      usedUnverifiedFallback = true;
+    }
+
+    if (error && !usedUnverifiedFallback) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    if (!authUser?.id || !authUser.email) {
+      return NextResponse.json({ error: "Could not create account." }, { status: 400 });
     }
 
     await ensureDatabase();
     const user = await prisma.user.upsert({
-      where: { id: data.user.id },
+      where: { id: authUser.id },
       update: {
         email,
         name: input.name.trim(),
       },
       create: {
-        id: data.user.id,
+        id: authUser.id,
         name: input.name.trim(),
         email,
         profile: { create: {} },
@@ -62,7 +105,8 @@ export async function POST(request: NextRequest) {
 
     return withAuthCookies(response, {
       user: { id: user.id, email: user.email, name: user.name },
-      needsEmailConfirmation: !data.session,
+      needsEmailConfirmation: !session,
+      emailConfirmationBypassed: usedUnverifiedFallback,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

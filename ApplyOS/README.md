@@ -47,6 +47,7 @@ Use `.env.example` as the template. The app is usable with mock mode and no paid
 
 Important variables:
 
+- `AUTH_ALLOW_UNVERIFIED_SIGNUP_FALLBACK`
 - `DATABASE_URL`
 - `DIRECT_URL`
 - `SUPABASE_URL`
@@ -89,3 +90,5 @@ The `resumes` bucket is used by the Profile screen's resume upload control. Uplo
 ## Security Note
 
 The app accesses app tables through server-side Prisma and uses route-level ownership checks. Keep Row Level Security enabled for tables that may later be accessed directly through browser Supabase clients, and keep the `SUPABASE_SERVICE_ROLE_KEY` server-only.
+
+`AUTH_ALLOW_UNVERIFIED_SIGNUP_FALLBACK=true` is a demo safety valve for Supabase email rate limits. It creates a confirmed Supabase Auth user server-side only when Supabase rejects signup with an email rate-limit error. Disable it after configuring custom SMTP or restoring normal email confirmation delivery.

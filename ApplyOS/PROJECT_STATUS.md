@@ -26,6 +26,7 @@ Production MVP implementation and verification.
 - Scaffolded a Next.js 16 + TypeScript + Tailwind application.
 - Replaced local credentials authentication with Supabase Auth and cookie-based SSR sessions.
 - Added password reset request and update flow through Supabase Auth recovery links.
+- Added an env-gated signup fallback for Supabase email rate-limit incidents.
 - Added protected app routes and a private user profile workspace.
 - Added Prisma data models.
 - Switched database configuration from local SQLite to Supabase Postgres.
@@ -49,6 +50,7 @@ Build ApplyOS as a production-shaped web app with authentication, private user p
 ## Current Implementation Choice
 
 - Auth: Supabase Auth with protected Next.js routes, SSR cookies, and normalized `401` API responses.
+- Signup: normal Supabase email-confirmation flow first, with `AUTH_ALLOW_UNVERIFIED_SIGNUP_FALLBACK` available for demo continuity while Supabase email limits are active.
 - Database: Prisma + Supabase Postgres.
 - AI: OpenAI is configured for live tailoring in local `.env`; mock mode remains available through `.env.example`.
 - Jobs: live connector attempts first, then cached/local/mock fallback.
@@ -152,4 +154,5 @@ Deployment verification on 2026-07-03:
 - Run a full authenticated browser smoke test with a fresh signup/login once Supabase email limits are clear.
 - Confirm Supabase Auth production redirect URLs include `https://applyos-sable.vercel.app/auth/confirm`.
 - Enable Supabase leaked password protection in the Auth dashboard.
+- Disable `AUTH_ALLOW_UNVERIFIED_SIGNUP_FALLBACK` after custom SMTP or normal Supabase email delivery is configured.
 - Add a custom domain if the project needs one for judging/demo polish.
