@@ -27,6 +27,8 @@ coverage/
 *.tsbuildinfo
 .vercel/
 **/.vercel/
+.tools/
+**/.tools/
 
 # Local databases and generated clients
 *.db
